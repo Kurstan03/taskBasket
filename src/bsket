@@ -1,0 +1,257 @@
+create table customers
+(
+    id           serial primary key,
+    first_name   varchar not null,
+    last_name    varchar not null,
+    email        varchar unique,
+    phone_number varchar
+);
+create table baskets
+(
+    id          serial primary key,
+    basket_name varchar not null,
+    customer_id int references customers (id)
+);
+create table products
+(
+    id          serial primary key,
+    name        varchar not null,
+    description varchar,
+    price       double precision,
+    weight      double precision
+);
+create table product_infos
+(
+    id              serial primary key,
+    expiration_date date,
+    country         varchar,
+    colour          varchar,
+    products_id     int references products (id)
+);
+create table product_baskets
+(
+    id         serial primary key,
+    basket_id  int references baskets (id),
+    product_id int references products (id)
+);
+
+insert into customers(first_name, last_name, email, phone_number)
+VALUES ('Kurstan', 'Erkinbaev', 'kurstan@gmail.com', '+996220113355'),
+       ('Iliaz', 'Sariev', 'iliaz@gmail.com', '+996770907856'),
+       ('Aibek', 'Munarbekov', 'aibek@gmail.com', '+996555234480'),
+       ('Syimyk', 'jumabek uulu', 'syimyk@gmail', '+996555222333'),
+       ('Bektemir', 'Samatov', 'bektemir@gmail', '+996555998800'),
+       ('Baiysh', 'Orozaliev', 'baiysh@gmail.com', '+996990445588');
+
+insert into baskets(basket_name, customer_id)
+VALUES ('kurstan basket', 1),
+       ('iliaz basket', 2),
+       ('Syimyk basket', 3),
+       ('Baiysh basket', 4),
+       ('basket', null),
+       ('my basket', null);
+
+insert into products(name, description, price, weight)
+VALUES ('Cheese', 'milk', 230, 20),
+       ('juice', 'apple juice', 120, 102),
+       ('bread', 'wheat flour', 25, 45),
+       ('meat', 'meat beef', 230, 20),
+       ('egg', 'egg egg', 15, 5);
+insert into products(name, description, price, weight)
+VALUES ('kivi', 'fruit', 99, 30);
+
+insert into product_infos(expiration_date, country, colour, products_id)
+VALUES ('2021-1-1', 'USA', 'white', 1),
+       ('2022-10-21', 'Austria', 'green', 2),
+       ('2021-2-19', 'USA', 'brown', 3),
+       ('2023-2-3', 'Kyrgyzstan', 'red', 4),
+       ('2023-1-28', 'Mexico', 'green', null),
+       ('2023-1-11', 'Kyrgyzstan', 'red', null);
+update product_infos
+set colour      = 'white',
+    products_id = 5
+where id = 6;
+insert into product_baskets(basket_id, product_id)
+VALUES (1, 5),
+       (2, 4),
+       (3, 2),
+       (4, 3),
+       (5, 1),
+       (2, 4),
+       (1, 5);
+
+
+--     1. Баардык продукталарды(Products) жана информацияларды чыгар.
+select *
+from products
+         full join product_infos pi on products.id = pi.products_id;
+--     2. Информациясы бар болгон продукталарды гана чыгар.
+select *
+from product_infos
+         join products p on p.id = product_infos.products_id;
+--     3. Информациясы жок(null) болгон продукталарды чыгар.
+
+select *
+from product_infos
+where products_id is null;
+--     4. Баардык продукталардын атын жана срогун чыгар.
+select name, expiration_date
+from products
+         join product_infos pi on products.id = pi.products_id;
+--     5. Баардык продукталарды жана анын мамлекеттери "М" менен башталган шаарларын чыгар.
+update product_infos
+set country = 'Madrid'
+where id = 2;
+select *
+from products
+         join product_infos pi on products.id = pi.products_id
+where country like 'M%';
+--     6. Баардык кардардын(Customers) аттарын жана
+--     кардарга тийешелуу карзинанын(Basket_терин) аттарын сорттоп чыгар.(asc,desc)
+select first_name, basket_name
+from customers
+         left join baskets b on customers.id = b.customer_id
+order by first_name;
+select first_name, basket_name
+from customers
+         left join baskets b on customers.id = b.customer_id
+order by first_name desc;
+select first_name, basket_name
+from customers
+         left join baskets b on customers.id = b.customer_id
+order by basket_name;
+select first_name, basket_name
+from customers
+         left join baskets b on customers.id = b.customer_id
+order by basket_name desc;
+--     7. Кардардын аты жана кардардын продуктулары чыксын.
+select first_name, p.id, name, description, price, weight
+from customers
+         join baskets b on customers.id = b.customer_id
+         join product_baskets pb on b.id = pb.basket_id
+         join products p on p.id = pb.product_id;
+
+--     8. Кардардын аты, кардар алган продуктун аты, баасы, салмагы чыксын.
+select first_name, name, price, weight
+from customers
+         join baskets b on customers.id = b.customer_id
+         join product_baskets pb on b.id = pb.basket_id
+         join products p on p.id = pb.product_id;
+--     9. Бир кардар эки окшош продукт алган болсо, кардардын аты,
+--     кардар алган продукталарынын аты уникалдуу болуп баасы жана салмагы кошулуп чыгар.
+select first_name, name, sum(price) as products_price_sum, sum(weight) as products_weight_sum
+from customers
+         join baskets b on customers.id = b.customer_id
+         join product_baskets pb on b.id = pb.basket_id
+         join products p on p.id = pb.product_id
+group by first_name, name;
+
+--     10.Бир өлкөдө чыккан продукталдын баарын чыгар. (USA)
+select country, name
+from products
+         join product_infos pi on products.id = pi.products_id
+group by country, name;
+select *
+from products
+         join product_infos pi on products.id = pi.products_id
+where country = 'USA';
+
+--     11.Кардарлардын баарын жана алган продукталарынын баасынын суммасын тегеректеп (округлить) чыгар.
+select *
+from customers;
+select customers.id,
+       first_name,
+       last_name,
+       email,
+       phone_number,
+       round(sum(price)) as sum_product_prises
+from customers
+         join baskets b on customers.id = b.customer_id
+         join product_baskets pb on b.id = pb.basket_id
+         join products p on p.id = pb.product_id
+group by customers.id;
+--     12."2021" ден "2023" кө чейинки сроктогу продукталардын атын жана срокторун чыгар.
+select name, expiration_date
+from products
+         join product_infos pi on products.id = pi.products_id
+where expiration_date between '2021-1-1' and '2023-1-1';
+--     13.Срогу "2022" болгон продукталардын шаарын ,
+--     продукталардын атын жана баасын чыгар бирок баалары 0 болуп калсын.
+select country, name, price * 0 as price
+from products
+         join product_infos pi on products.id = pi.products_id
+where extract(year from expiration_date) = '2022';
+--     14.Баардык кардарлардын продукталарынын сумассын чыгар.
+select customers.id,
+       first_name,
+       last_name,
+       email,
+       phone_number,
+       count(price) as count_products
+from customers
+         left join baskets b on customers.id = b.customer_id
+         left join product_baskets pb on b.id = pb.basket_id
+         left join products p on p.id = pb.product_id
+group by customers.id;
+--     15.Кардардын аты жана ал сатып алган продуктунун аты, тусу чыксын.
+select first_name, name, colour
+from customers
+         join baskets b on customers.id = b.customer_id
+         join product_baskets pb on b.id = pb.basket_id
+         join products p on p.id = pb.product_id
+         left join product_infos pi on p.id = pi.products_id;
+
+--     16.Баардык продуктулардын салмактарын чыгар.
+select weight
+from products;
+--OR:
+select weight
+from product_infos
+         join products p on p.id = product_infos.products_id;
+--     17.Кардарлардын email_дары "com" менен буткон кардарлардын аттары, корзинасынын аты чыксын.
+select first_name, basket_name
+from customers
+         join baskets b on customers.id = b.customer_id
+where email like '%com';
+--     18.Продукtaлардын атын, кыскача маалыматын(description),
+--     кардардын атын чыгар качан кардарлардын номери жок(null) болсо.
+update customers
+set phone_number = null
+where id = 3;
+select name, description, first_name
+from customers
+         join baskets b on customers.id = b.customer_id
+         join product_baskets pb on b.id = pb.basket_id
+         join products p on p.id = pb.product_id
+where phone_number is null;
+
+--     19.Бардык продуктунун тустору жана тустору окшош продукталары чыксын.
+
+select colour, products, count(colour)
+from products
+         join product_infos pi on products.id = pi.products_id
+group by colour, products;
+
+--OR
+select colour, products
+from products
+         join product_infos pi on products.id = pi.products_id
+where colour = 'white';
+--     20.Баардык продукталардын мамлекeти окшош болгон продукталардын атын жана анын кардарларын атын чыгар.
+select name, first_name
+from customers
+         join baskets b on customers.id = b.customer_id
+         join product_baskets pb on b.id = pb.basket_id
+         join products p on p.id = pb.product_id
+         join product_infos pi on p.id = pi.products_id;
+
+--OR
+
+select name, first_name
+from customers
+         join baskets b on customers.id = b.customer_id
+         join product_baskets pb on b.id = pb.basket_id
+         join products p on p.id = pb.product_id
+         join product_infos pi on p.id = pi.products_id
+where country = 'USA'
+   or country = 'Kyrgyzstan';
